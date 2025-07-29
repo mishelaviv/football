@@ -1,24 +1,42 @@
-import { useEffect, useState } from "react";
+import React, { Component } from "react";
 import { getLeagues } from "../api";
 
-function LeagueSelector({ onSelect }) {
-  const [leagues, setLeagues] = useState([]);
-  const [chosen,  setChosen]  = useState("");
-
-  useEffect(() => { getLeagues().then(r => setLeagues(r.data)); }, []);
-
-  function handle(e) {
-    setChosen(e.target.value);
-    onSelect(e.target.value);
+class LeagueSelector extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      leagues: [],
+      chosen: ""
+    };
+    this.handleChange = this.handleChange.bind(this);
   }
 
-  return (
-    <select value={chosen} onChange={handle}>
-      <option value="">-- choose league --</option>
-      {leagues.map(l => (
-        <option key={l.id} value={l.id}>{l.name}</option>
-      ))}
-    </select>
-  );
+  componentDidMount() {
+    getLeagues().then((res) => {
+      this.setState({ leagues: res.data });
+    });
+  }
+
+  handleChange(e) {
+    const selectedValue = e.target.value;
+    this.setState({ chosen: selectedValue });
+    this.props.onSelect(selectedValue);
+  }
+
+  render() {
+    const { leagues, chosen } = this.state;
+
+    return (
+        <select value={chosen} onChange={this.handleChange}>
+          <option value="">-- choose league --</option>
+          {leagues.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+          ))}
+        </select>
+    );
+  }
 }
+
 export default LeagueSelector;
