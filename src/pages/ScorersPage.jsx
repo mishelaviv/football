@@ -3,61 +3,62 @@ import axios from "axios";
 import LeagueSelector from "../components/LeagueSelector";
 
 class ScorersPage extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            leagueId: "",
-            leaders: []
-        };
+    state = {
+        leagueId: "",
+        leaders: [],
+        loadedLeague: ""
+    };
 
-        this.handleLeagueSelect = this.handleLeagueSelect.bind(this);
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-        if (prevState.leagueId !== this.state.leagueId && this.state.leagueId) {
+    componentDidUpdate() {
+        if (
+            this.state.leagueId &&
+            this.state.leagueId !== this.state.loadedLeague
+        ) {
             axios
                 .get(`https://app.seker.live/fm1/history/${this.state.leagueId}`)
-                .then((res) => {
-                    const tally = {};
-                    res.data.forEach((match) =>
+                .then((response) => {
+                    const goalCounts = {};
+
+                    response.data.forEach((match) =>
                         match.goals.forEach((g) => {
                             const name = `${g.scorer.firstName} ${g.scorer.lastName}`;
-                            tally[name] = (tally[name] || 0) + 1;
+                            goalCounts[name] = (goalCounts[name] || 0) + 1;
                         })
                     );
-                    const top3 = Object.entries(tally)
+
+                    const top3 = Object.entries(goalCounts)
                         .map(([name, goals]) => ({ name, goals }))
                         .sort((a, b) => b.goals - a.goals)
                         .slice(0, 3);
 
-                    this.setState({ leaders: top3 });
+                    this.setState({ leaders: top3, loadedLeague: this.state.leagueId });
                 })
-                .catch((err) => {
-                    console.error("Error fetching history:", err);
+                .catch((error) => {
+                    console.error("Error loading top scorers:", error);
                 });
         }
     }
 
-    handleLeagueSelect(leagueId) {
+    handleLeagueSelect = (leagueId) => {
         this.setState({ leagueId });
-    }
+    };
 
     render() {
-        const { leaders } = this.state;
-
         return (
             <div className="container">
                 <h2 className="mb-3">Top 3 Scorers</h2>
                 <LeagueSelector onSelect={this.handleLeagueSelect} />
 
                 <ol className="list-group list-group-numbered mt-3">
-                    {leaders.map((p) => (
+                    {this.state.leaders.map((player) => (
                         <li
-                            key={p.name}
+                            key={player.name}
                             className="list-group-item d-flex justify-content-between"
                         >
-                            {p.name}
-                            <span className="badge bg-primary rounded-pill">{p.goals}</span>
+                            {player.name}
+                            <span className="badge bg-primary rounded-pill">
+                {player.goals}
+              </span>
                         </li>
                     ))}
                 </ol>

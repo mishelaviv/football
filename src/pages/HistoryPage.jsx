@@ -3,51 +3,47 @@ import axios from "axios";
 import LeagueSelector from "../components/LeagueSelector";
 
 class HistoryPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      leagueId: "",
-      games: [],
-      minR: "",
-      maxR: ""
-    };
+  state = {
+    leagueId: "",
+    loadedLeague: "",
+    games: [],
+    minR: "",
+    maxR: ""
+  };
 
-    this.handleLeagueSelect = this.handleLeagueSelect.bind(this);
-    this.handleMinChange = this.handleMinChange.bind(this);
-    this.handleMaxChange = this.handleMaxChange.bind(this);
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.leagueId !== this.state.leagueId && this.state.leagueId) {
+  componentDidUpdate() {
+    if (
+        this.state.leagueId &&
+        this.state.leagueId !== this.state.loadedLeague
+    ) {
       axios
           .get(`https://app.seker.live/fm1/history/${this.state.leagueId}`)
-          .then((res) => {
-            this.setState({ games: res.data });
+          .then((response) => {
+            this.setState({ games: response.data, loadedLeague: this.state.leagueId });
           })
-          .catch((err) => {
-            console.error("Error fetching history:", err);
+          .catch((error) => {
+            console.error("Error fetching history:", error);
           });
     }
   }
 
-  handleLeagueSelect(leagueId) {
+  handleLeagueSelect = (leagueId) => {
     this.setState({ leagueId });
-  }
+  };
 
-  handleMinChange(e) {
+  handleMinChange = (e) => {
     this.setState({ minR: e.target.value });
-  }
+  };
 
-  handleMaxChange(e) {
+  handleMaxChange = (e) => {
     this.setState({ maxR: e.target.value });
-  }
+  };
 
   render() {
-    const { games, minR, maxR } = this.state;
-
-    const shown = games.filter((g) =>
-        (minR === "" || g.round >= +minR) &&
-        (maxR === "" || g.round <= +maxR)
+    const filteredGames = this.state.games.filter(
+        (g) =>
+            (this.state.minR === "" || g.round >= +this.state.minR) &&
+            (this.state.maxR === "" || g.round <= +this.state.maxR)
     );
 
     return (
@@ -55,7 +51,7 @@ class HistoryPage extends Component {
           <h2 className="mb-3">Match History</h2>
           <LeagueSelector onSelect={this.handleLeagueSelect} />
 
-          {games.length > 0 && (
+          {this.state.games.length > 0 && (
               <>
                 <div className="my-3">
                   Round&nbsp;
@@ -63,7 +59,7 @@ class HistoryPage extends Component {
                       type="number"
                       className="form-control d-inline-block"
                       style={{ width: 90 }}
-                      value={minR}
+                      value={this.state.minR}
                       onChange={this.handleMinChange}
                   />
                   &nbsp;to&nbsp;
@@ -71,15 +67,16 @@ class HistoryPage extends Component {
                       type="number"
                       className="form-control d-inline-block"
                       style={{ width: 90 }}
-                      value={maxR}
+                      value={this.state.maxR}
                       onChange={this.handleMaxChange}
                   />
                 </div>
 
                 <ul className="list-group">
-                  {shown.map((m) => {
+                  {filteredGames.map((m) => {
                     const h = m.goals.filter((g) => g.home).length;
                     const a = m.goals.length - h;
+
                     return (
                         <li key={m.id} className="list-group-item">
                           {m.homeTeam.name} {h} – {a} {m.awayTeam.name}

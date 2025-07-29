@@ -3,46 +3,46 @@ import axios from "axios";
 import LeagueSelector from "../components/LeagueSelector";
 
 class StatsPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      leagueId: "",
-      stats: null
-    };
+  state = {
+    leagueId: "",
+    stats: null,
+    loadedLeague: ""
+  };
 
-    this.handleLeagueSelect = this.handleLeagueSelect.bind(this);
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.leagueId !== this.state.leagueId && this.state.leagueId) {
+  componentDidUpdate() {
+    if (
+        this.state.leagueId &&
+        this.state.leagueId !== this.state.loadedLeague
+    ) {
       axios
           .get(`https://app.seker.live/fm1/history/${this.state.leagueId}`)
-          .then((res) => {
-            this.calcStats(res.data);
+          .then((response) => {
+            this.calculateStats(response.data);
+            this.setState({ loadedLeague: this.state.leagueId });
           })
-          .catch((err) => {
-            console.error("Error fetching history:", err);
+          .catch((error) => {
+            console.error("Error loading stats:", error);
           });
     }
   }
 
-  handleLeagueSelect(leagueId) {
+  handleLeagueSelect = (leagueId) => {
     this.setState({ leagueId });
-  }
+  };
 
-  calcStats(games) {
+  calculateStats(games) {
     let firstHalf = 0,
         secondHalf = 0,
         earliest = 120,
         latest = 0;
     const goalsPerRound = {};
 
-    games.forEach((m) => {
-      const round = m.round;
-      const total = m.goals.length;
-      goalsPerRound[round] = (goalsPerRound[round] || 0) + total;
+    games.forEach((match) => {
+      const round = match.round;
+      const totalGoals = match.goals.length;
+      goalsPerRound[round] = (goalsPerRound[round] || 0) + totalGoals;
 
-      m.goals.forEach((g) => {
+      match.goals.forEach((g) => {
         const min = g.minute;
         if (min <= 45) firstHalf++;
         else secondHalf++;
@@ -61,32 +61,30 @@ class StatsPage extends Component {
   }
 
   render() {
-    const { stats } = this.state;
-
     return (
         <div className="container">
           <h2 className="mb-3">League Statistics</h2>
           <LeagueSelector onSelect={this.handleLeagueSelect} />
 
-          {stats && (
+          {this.state.stats && (
               <ul className="list-group mt-3">
                 <li className="list-group-item">
-                  Goals 1st half: <strong>{stats.firstHalf}</strong>
+                  Goals 1st half: <strong>{this.state.stats.firstHalf}</strong>
                 </li>
                 <li className="list-group-item">
-                  Goals 2nd half: <strong>{stats.secondHalf}</strong>
+                  Goals 2nd half: <strong>{this.state.stats.secondHalf}</strong>
                 </li>
                 <li className="list-group-item">
-                  Earliest goal minute: <strong>{stats.earliest}'</strong>
+                  Earliest goal minute: <strong>{this.state.stats.earliest}'</strong>
                 </li>
                 <li className="list-group-item">
-                  Latest goal minute: <strong>{stats.latest}'</strong>
+                  Latest goal minute: <strong>{this.state.stats.latest}'</strong>
                 </li>
                 <li className="list-group-item">
-                  Round with most goals: <strong>{stats.mostR}</strong>
+                  Round with most goals: <strong>{this.state.stats.mostR}</strong>
                 </li>
                 <li className="list-group-item">
-                  Round with fewest goals: <strong>{stats.leastR}</strong>
+                  Round with fewest goals: <strong>{this.state.stats.leastR}</strong>
                 </li>
               </ul>
           )}

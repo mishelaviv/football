@@ -3,40 +3,34 @@ import axios from "axios";
 import LeagueSelector from "../components/LeagueSelector";
 
 class TablesPage extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            leagueId: "",
-            table: [],
-            extra: null
-        };
+    state = {
+        leagueId: "",
+        table: [],
+        extra: null,
+        loadedLeague: ""
+    };
 
-        this.handleLeagueSelect = this.handleLeagueSelect.bind(this);
-        this.rowClick = this.rowClick.bind(this);
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-        const { leagueId } = this.state;
-
-        if (prevState.leagueId !== leagueId && leagueId) {
-            // Load history first, then build table
+    componentDidUpdate() {
+        if (
+            this.state.leagueId &&
+            this.state.leagueId !== this.state.loadedLeague
+        ) {
             axios
-                .get(`https://app.seker.live/fm1/history/${leagueId}`)
-                .then((histRes) => {
-                    const games = histRes.data;
+                .get(`https://app.seker.live/fm1/history/${this.state.leagueId}`)
+                .then((response) => {
                     const stats = {};
 
-                    function ensure(teamObj) {
-                        const { id, name } = teamObj;
+                    const ensure = (team) => {
+                        const { id, name } = team;
                         if (!stats[id]) stats[id] = { id, name, pts: 0, gf: 0, ga: 0 };
                         return stats[id];
-                    }
+                    };
 
-                    games.forEach((g) => {
-                        const home = ensure(g.homeTeam);
-                        const away = ensure(g.awayTeam);
-                        const hGoals = g.goals.filter((go) => go.home).length;
-                        const aGoals = g.goals.length - hGoals;
+                    response.data.forEach((match) => {
+                        const home = ensure(match.homeTeam);
+                        const away = ensure(match.awayTeam);
+                        const hGoals = match.goals.filter((g) => g.home).length;
+                        const aGoals = match.goals.length - hGoals;
 
                         home.gf += hGoals;
                         home.ga += aGoals;
@@ -51,8 +45,8 @@ class TablesPage extends Component {
                         }
                     });
 
-                    const final = Object.values(stats)
-                        .map((t) => ({ ...t, gd: t.gf - t.ga }))
+                    const finalTable = Object.values(stats)
+                        .map((team) => ({ ...team, gd: team.gf - team.ga }))
                         .sort(
                             (a, b) =>
                                 b.pts - a.pts ||
@@ -60,55 +54,47 @@ class TablesPage extends Component {
                                 a.name.localeCompare(b.name)
                         );
 
-                    this.setState({ table: final, extra: null });
+                    this.setState({ table: finalTable, extra: null, loadedLeague: this.state.leagueId });
                 })
-                .catch((err) => {
-                    console.error("Error loading history:", err);
+                .catch((error) => {
+                    console.error("Error loading history:", error);
                 });
         }
     }
 
-    handleLeagueSelect(leagueId) {
+    handleLeagueSelect = (leagueId) => {
         this.setState({ leagueId });
-    }
+    };
 
-    rowClick(team) {
-        const { leagueId } = this.state;
-
+    rowClick = (team) => {
         axios
-            .get(`https://app.seker.live/fm1/squad/${leagueId}/${team.id}`)
-            .then((sqRes) => {
-                const squad = sqRes.data;
+            .get(`https://app.seker.live/fm1/squad/${this.state.leagueId}/${team.id}`)
+            .then((squadRes) => {
+                const squad = squadRes.data;
 
                 axios
-                    .get(`https://app.seker.live/fm1/history/${leagueId}/${team.id}`)
-                    .then((histRes) => {
+                    .get(`https://app.seker.live/fm1/history/${this.state.leagueId}/${team.id}`)
+                    .then((historyRes) => {
                         this.setState({
                             extra: {
                                 team,
                                 squad,
-                                hist: histRes.data
+                                hist: historyRes.data
                             }
                         });
                     })
-                    .catch((err) => {
-                        console.error("Error loading team history:", err);
-                    });
+                    .catch((err) => console.error("Team history error:", err));
             })
-            .catch((err) => {
-                console.error("Error loading squad:", err);
-            });
-    }
+            .catch((err) => console.error("Squad error:", err));
+    };
 
     render() {
-        const { table, extra } = this.state;
-
         return (
             <div className="container">
                 <h2 className="mb-3">League Table</h2>
                 <LeagueSelector onSelect={this.handleLeagueSelect} />
 
-                {table.length > 0 && (
+                {this.state.table.length > 0 && (
                     <table className="table table-striped table-bordered mt-3">
                         <thead className="table-light">
                         <tr>
@@ -119,25 +105,25 @@ class TablesPage extends Component {
                         </tr>
                         </thead>
                         <tbody>
-                        {table.map((t, i) => {
+                        {this.state.table.map((team, index) => {
                             const color =
-                                i === 0
+                                index === 0
                                     ? "#0d6efd"
-                                    : i >= table.length - 3
+                                    : index >= this.state.table.length - 3
                                         ? "#dc3545"
                                         : "inherit";
-                            const bold = i === 0 ? 600 : 400;
+                            const fontWeight = index === 0 ? 600 : 400;
 
                             return (
                                 <tr
-                                    key={t.id}
-                                    onClick={() => this.rowClick(t)}
+                                    key={team.id}
+                                    onClick={() => this.rowClick(team)}
                                     style={{ cursor: "pointer" }}
                                 >
-                                    <td style={{ color, fontWeight: bold }}>{i + 1}</td>
-                                    <td style={{ color, fontWeight: bold }}>{t.name}</td>
-                                    <td style={{ color }}>{t.pts}</td>
-                                    <td style={{ color }}>{t.gd}</td>
+                                    <td style={{ color, fontWeight }}>{index + 1}</td>
+                                    <td style={{ color, fontWeight }}>{team.name}</td>
+                                    <td style={{ color }}>{team.pts}</td>
+                                    <td style={{ color }}>{team.gd}</td>
                                 </tr>
                             );
                         })}
@@ -145,12 +131,12 @@ class TablesPage extends Component {
                     </table>
                 )}
 
-                {extra && (
+                {this.state.extra && (
                     <div className="card mt-4">
                         <div className="card-body">
-                            <h4>{extra.team.name} – Squad</h4>
+                            <h4>{this.state.extra.team.name} – Squad</h4>
                             <ul className="list-group mb-3">
-                                {extra.squad.map((p) => (
+                                {this.state.extra.squad.map((p) => (
                                     <li key={p.id} className="list-group-item">
                                         {p.firstName} {p.lastName}
                                         {p.captain && " (C)"}
@@ -160,7 +146,7 @@ class TablesPage extends Component {
 
                             <h4>Match history</h4>
                             <ul className="list-group">
-                                {extra.hist.map((m) => {
+                                {this.state.extra.hist.map((m) => {
                                     const hGoals = m.goals.filter((g) => g.home).length;
                                     const aGoals = m.goals.length - hGoals;
                                     return (
