@@ -19,7 +19,10 @@ class HistoryPage extends Component {
       axios
           .get(`https://app.seker.live/fm1/history/${this.state.leagueId}`)
           .then((response) => {
-            this.setState({ games: response.data, loadedLeague: this.state.leagueId });
+            this.setState({
+              games: response.data,
+              loadedLeague: this.state.leagueId
+            });
           })
           .catch((error) => {
             console.error("Error fetching history:", error);
@@ -53,19 +56,19 @@ class HistoryPage extends Component {
 
           {this.state.games.length > 0 && (
               <>
-                <div className="my-3">
-                  Round&nbsp;
+                <div className="my-3 d-flex align-items-center gap-2">
+                  <label className="mb-0">Round</label>
                   <input
                       type="number"
-                      className="form-control d-inline-block"
+                      className="form-control"
                       style={{ width: 90 }}
                       value={this.state.minR}
                       onChange={this.handleMinChange}
                   />
-                  &nbsp;to&nbsp;
+                  <span>to</span>
                   <input
                       type="number"
-                      className="form-control d-inline-block"
+                      className="form-control"
                       style={{ width: 90 }}
                       value={this.state.maxR}
                       onChange={this.handleMaxChange}
