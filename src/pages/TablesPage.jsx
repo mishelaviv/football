@@ -1,6 +1,6 @@
 import React, { Component } from "react";
+import axios from "axios";
 import LeagueSelector from "../components/LeagueSelector";
-import { getTeams, getHistory, getSquad, getTeamHist } from "../api";
 
 class TablesPage extends Component {
     constructor(props) {
@@ -16,9 +16,13 @@ class TablesPage extends Component {
     }
 
     componentDidUpdate(prevProps, prevState) {
-        if (prevState.leagueId !== this.state.leagueId && this.state.leagueId) {
-            Promise.all([getTeams(this.state.leagueId), getHistory(this.state.leagueId)])
-                .then(([teamsRes, histRes]) => {
+        const { leagueId } = this.state;
+
+        if (prevState.leagueId !== leagueId && leagueId) {
+            // Load history first, then build table
+            axios
+                .get(`https://app.seker.live/fm1/history/${leagueId}`)
+                .then((histRes) => {
                     const games = histRes.data;
                     const stats = {};
 
@@ -57,6 +61,9 @@ class TablesPage extends Component {
                         );
 
                     this.setState({ table: final, extra: null });
+                })
+                .catch((err) => {
+                    console.error("Error loading history:", err);
                 });
         }
     }
@@ -67,15 +74,29 @@ class TablesPage extends Component {
 
     rowClick(team) {
         const { leagueId } = this.state;
-        Promise.all([getSquad(leagueId, team.id), getTeamHist(leagueId, team.id)])
-            .then(([sqRes, histRes]) => {
-                this.setState({
-                    extra: {
-                        team,
-                        squad: sqRes.data,
-                        hist: histRes.data
-                    }
-                });
+
+        axios
+            .get(`https://app.seker.live/fm1/squad/${leagueId}/${team.id}`)
+            .then((sqRes) => {
+                const squad = sqRes.data;
+
+                axios
+                    .get(`https://app.seker.live/fm1/history/${leagueId}/${team.id}`)
+                    .then((histRes) => {
+                        this.setState({
+                            extra: {
+                                team,
+                                squad,
+                                hist: histRes.data
+                            }
+                        });
+                    })
+                    .catch((err) => {
+                        console.error("Error loading team history:", err);
+                    });
+            })
+            .catch((err) => {
+                console.error("Error loading squad:", err);
             });
     }
 

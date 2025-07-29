@@ -1,6 +1,6 @@
 import React, { Component } from "react";
+import axios from "axios";
 import LeagueSelector from "../components/LeagueSelector";
-import { getHistory } from "../api";
 
 class StatsPage extends Component {
   constructor(props) {
@@ -15,9 +15,14 @@ class StatsPage extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.leagueId !== this.state.leagueId && this.state.leagueId) {
-      getHistory(this.state.leagueId).then((res) => {
-        this.calcStats(res.data);
-      });
+      axios
+          .get(`https://app.seker.live/fm1/history/${this.state.leagueId}`)
+          .then((res) => {
+            this.calcStats(res.data);
+          })
+          .catch((err) => {
+            console.error("Error fetching history:", err);
+          });
     }
   }
 
@@ -50,7 +55,9 @@ class StatsPage extends Component {
     const [mostR] = entries.reduce((a, b) => (b[1] > a[1] ? b : a));
     const [leastR] = entries.reduce((a, b) => (b[1] < a[1] ? b : a));
 
-    this.setState({ stats: { firstHalf, secondHalf, earliest, latest, mostR, leastR } });
+    this.setState({
+      stats: { firstHalf, secondHalf, earliest, latest, mostR, leastR }
+    });
   }
 
   render() {

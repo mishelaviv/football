@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { getLeagues } from "../api";
+import axios from "axios";
 
 class LeagueSelector extends Component {
   constructor(props) {
@@ -12,9 +12,14 @@ class LeagueSelector extends Component {
   }
 
   componentDidMount() {
-    getLeagues().then((res) => {
-      this.setState({ leagues: res.data });
-    });
+    axios
+        .get("https://app.seker.live/fm1/leagues")
+        .then((res) => {
+          this.setState({ leagues: res.data });
+        })
+        .catch((err) => {
+          console.error("Error loading leagues:", err);
+        });
   }
 
   handleChange(e) {

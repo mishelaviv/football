@@ -1,6 +1,6 @@
 import React, { Component } from "react";
+import axios from "axios";
 import LeagueSelector from "../components/LeagueSelector";
-import { getHistory } from "../api";
 
 class HistoryPage extends Component {
   constructor(props) {
@@ -19,9 +19,14 @@ class HistoryPage extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.leagueId !== this.state.leagueId && this.state.leagueId) {
-      getHistory(this.state.leagueId).then((res) => {
-        this.setState({ games: res.data });
-      });
+      axios
+          .get(`https://app.seker.live/fm1/history/${this.state.leagueId}`)
+          .then((res) => {
+            this.setState({ games: res.data });
+          })
+          .catch((err) => {
+            console.error("Error fetching history:", err);
+          });
     }
   }
 
